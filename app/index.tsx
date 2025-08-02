@@ -1,9 +1,13 @@
 import { View } from 'react-native';
 
+import Header from '../components/Header';
+
 const ToDo = () => {
     return (
         <View>
-            ToDo App
+            <Header />
+            {/* List */}
+            {/* Filter */}
         </View>
     )
 }
