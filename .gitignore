@@ -1,0 +1,74 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# Design files (please do not remove 🙂)
+*.sketch
+*.fig
+*.xd
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Environment and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Testing
+/coverage
+
+# Production
+/build
+/dist
+/.next
+/out
+
+# Debug and logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+yarn.debug.log*
+yarn.error.log*
+npm-debug.log*
+*.log
+
+# IDEs and editors
+/.idea
+/.vscode
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+*.pem
+
+# Windows
+Thumbs.db
+
+# Example/template files
+app-example
