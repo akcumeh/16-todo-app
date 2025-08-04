@@ -1,12 +1,13 @@
 import { View } from 'react-native';
 
 import Header from '../components/Header';
+import ToDoList from '../components/ToDoList';
 
 const ToDo = () => {
     return (
         <View>
             <Header />
-            {/* List */}
+            <ToDoList />
             {/* Filter */}
         </View>
     )
