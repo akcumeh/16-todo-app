@@ -2,11 +2,12 @@ import {
     View,
     Text,
     TouchableOpacity,
-    // Image,
     StyleSheet,
     ImageBackground
 } from 'react-native';
 import { useState } from 'react';
+import SunIcon from '../assets/images/icon-sun.svg';
+import MoonIcon from '../assets/images/icon-moon.svg';
 
 const Header = () => {
     const [isDarkMode, setIsDarkMode] = useState(false);
@@ -27,17 +28,12 @@ const Header = () => {
             <View style={styles.container}>
                 <Text style={styles.title}>TODO</Text>
 
-                <TouchableOpacity
-                    onPress={toggleTheme}
-                    style={styles.themeButton}
-                >
-                    <Text style={styles.themeIcon}>
-                        {
-                            isDarkMode
-                                ? "☀️"
-                                : "🌙"
-                        }
-                    </Text>
+                <TouchableOpacity onPress={toggleTheme} style={styles.themeButton}>
+                    {isDarkMode ? (
+                        <SunIcon width={26} height={26} />
+                    ) : (
+                        <MoonIcon width={26} height={26} />
+                    )}
                 </TouchableOpacity>
             </View>
         </ImageBackground>
@@ -46,8 +42,9 @@ const Header = () => {
 
 const styles = StyleSheet.create({
     backgroundImage: {
+        resizeMode: 'cover',
         width: '100%',
-        height: 200,
+        height: 175,
         paddingTop: 50,
         paddingHorizontal: 20,
     },
@@ -66,11 +63,6 @@ const styles = StyleSheet.create({
     },
     themeButton: {
         padding: 8,
-    },
-    themeIcon: {
-        width: 24,
-        height: 24,
-        tintColor: '#FFFFFF',
     },
 });
 
