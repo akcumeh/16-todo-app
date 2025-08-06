@@ -42,24 +42,23 @@ const Header = () => {
 
 const styles = StyleSheet.create({
     backgroundImage: {
-        resizeMode: 'cover',
         width: '100%',
-        height: 175,
+        height: 200,
         paddingTop: 50,
-        paddingHorizontal: 20,
     },
     container: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         flex: 1,
+        paddingHorizontal: 25,
     },
     title: {
         fontSize: 32,
         fontWeight: '700',
         color: '#FFFFFF',
         letterSpacing: 8,
-        fontFamily: 'System',
+        fontFamily: 'JosefinSans_700Bold',
     },
     themeButton: {
         padding: 8,

@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     itemContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 25,
         paddingVertical: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#f3f4f6',
@@ -128,9 +128,9 @@ const styles = StyleSheet.create({
     },
     text: {
         flex: 1,
-        fontSize: 16,
-        color: '#374151',
-        flexWrap: 'wrap',
+        fontSize: 18,
+        color: '#333',
+        fontFamily: 'JosefinSans_400Regular',
     },
     textCompleted: {
         textDecorationLine: 'line-through',

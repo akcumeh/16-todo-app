@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: 'white',
         borderRadius: 5,
-        paddingHorizontal: 20,
+        paddingHorizontal: 25,
         paddingVertical: 16,
         marginHorizontal: 20,
         marginTop: -30,
@@ -97,6 +97,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#374151',
         padding: 0,
+        fontFamily: 'JosefinSans_400Regular',
     },
     crossContainer: {
         width: 20,
