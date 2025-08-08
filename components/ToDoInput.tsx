@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Animated, Image } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import CrossIcon from '../assets/images/icon-cross.svg';
 
-const TodoInput = ({ onAddTodo }) => {
-    const [inputText, setInputText] = useState('');
+interface TodoInputProps {
+    onAddTodo: (text: string) => void;
+    isDarkMode: boolean;
+}
+
+const TodoInput = ({ onAddTodo, isDarkMode }: TodoInputProps) => {
+    const [inputText, setInputText] = useState<string>('');
     const [crossOpacity] = useState(new Animated.Value(0));
 
-    const handleTextChange = (text) => {
+    const handleTextChange = (text: string) => {
         setInputText(text);
 
         Animated.timing(crossOpacity, {
@@ -37,15 +43,24 @@ const TodoInput = ({ onAddTodo }) => {
     };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.emptyCircle} />
+        <View style={[
+            styles.container,
+            { backgroundColor: isDarkMode ? 'hsl(235, 24%, 19%)' : 'white' }
+        ]}>
+            <View style={[
+                styles.emptyCircle,
+                { borderColor: isDarkMode ? 'hsl(237, 14%, 26%)' : '#e5e7eb' }
+            ]} />
 
             <TextInput
-                style={styles.textInput}
+                style={[
+                    styles.textInput,
+                    { color: isDarkMode ? 'hsl(234, 39%, 85%)' : '#374151' }
+                ]}
                 value={inputText}
                 onChangeText={handleTextChange}
                 placeholder="Create a new todo..."
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={isDarkMode ? 'hsl(235, 16%, 43%)' : '#9ca3af'}
                 onSubmitEditing={handleSubmit}
                 returnKeyType="done"
                 multiline={false}
@@ -54,10 +69,7 @@ const TodoInput = ({ onAddTodo }) => {
 
             <Animated.View style={[styles.crossContainer, { opacity: crossOpacity }]}>
                 <TouchableOpacity onPress={handleClear} style={styles.crossButton}>
-                    <Image
-                        source={require('../assets/images/icon-cross.svg')}
-                        style={styles.crossIcon}
-                    />
+                    <CrossIcon width={18} height={18} />
                 </TouchableOpacity>
             </Animated.View>
         </View>
@@ -68,7 +80,6 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'white',
         borderRadius: 5,
         paddingHorizontal: 25,
         paddingVertical: 16,
@@ -90,12 +101,10 @@ const styles = StyleSheet.create({
         height: 24,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
     },
     textInput: {
         flex: 1,
         fontSize: 16,
-        color: '#374151',
         padding: 0,
         fontFamily: 'JosefinSans_400Regular',
     },
@@ -107,10 +116,6 @@ const styles = StyleSheet.create({
     },
     crossButton: {
         padding: 2,
-    },
-    crossIcon: {
-        width: 18,
-        height: 18,
     },
 });
 

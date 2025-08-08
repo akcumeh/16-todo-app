@@ -3,18 +3,37 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    ImageBackground
+    ImageBackground,
+    Animated
 } from 'react-native';
-import { useState } from 'react';
+import { useRef } from 'react';
 import SunIcon from '../assets/images/icon-sun.svg';
 import MoonIcon from '../assets/images/icon-moon.svg';
 
-const Header = () => {
-    const [isDarkMode, setIsDarkMode] = useState(false);
+interface HeaderProps {
+    isDarkMode: boolean;
+    toggleTheme: () => void;
+}
 
-    const toggleTheme = () => {
-        setIsDarkMode(!isDarkMode);
+const Header = ({ isDarkMode, toggleTheme }: HeaderProps) => {
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    const handleToggleTheme = () => {
+        toggleTheme();
+
+        Animated.timing(rotateAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+        }).start(() => {
+            rotateAnim.setValue(0);
+        });
     };
+
+    const rotation = rotateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['-30deg', '0deg'],
+    });
 
     return (
         <ImageBackground
@@ -28,12 +47,14 @@ const Header = () => {
             <View style={styles.container}>
                 <Text style={styles.title}>TODO</Text>
 
-                <TouchableOpacity onPress={toggleTheme} style={styles.themeButton}>
-                    {isDarkMode ? (
-                        <SunIcon width={26} height={26} />
-                    ) : (
-                        <MoonIcon width={26} height={26} />
-                    )}
+                <TouchableOpacity onPress={handleToggleTheme} style={styles.themeButton}>
+                    <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+                        {isDarkMode ? (
+                            <SunIcon width={26} height={26} />
+                        ) : (
+                            <MoonIcon width={26} height={26} />
+                        )}
+                    </Animated.View>
                 </TouchableOpacity>
             </View>
         </ImageBackground>

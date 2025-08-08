@@ -1,36 +1,92 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, Animated } from 'react-native';
 import TodoInput from './ToDoInput';
+import CrossIcon from '../assets/images/icon-cross.svg';
+import CheckIcon from '../assets/images/icon-check.svg';
 
-const ToDoItem = ({ text, completed = false, onToggle, onDelete }) => {
+interface Todo {
+    id: number;
+    text: string;
+    completed: boolean;
+}
+
+interface ToDoItemProps {
+    text: string;
+    completed: boolean;
+    onToggle: () => void;
+    onDelete: () => void;
+    isDarkMode: boolean;
+}
+
+interface ToDoListProps {
+    isDarkMode: boolean;
+}
+
+const ToDoItem = ({ text, completed = false, onToggle, onDelete, isDarkMode }: ToDoItemProps) => {
+    const slideAnim = useRef(new Animated.Value(0)).current;
+    const opacityAnim = useRef(new Animated.Value(1)).current;
+
+    const handleDelete = () => {
+        Animated.parallel([
+            Animated.timing(slideAnim, {
+                toValue: -300,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+            Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            onDelete();
+        });
+    };
+
     return (
-        <View style={styles.itemContainer}>
+        <Animated.View style={[
+            styles.itemContainer,
+            {
+                borderBottomColor: isDarkMode ? 'hsl(237, 14%, 26%)' : '#f3f4f6',
+                transform: [{ translateX: slideAnim }],
+                opacity: opacityAnim,
+            }
+        ]}>
             <TouchableOpacity
-                style={[styles.checkbox, completed && styles.checkboxCompleted]}
+                style={[
+                    styles.checkbox,
+                    { borderColor: isDarkMode ? 'hsl(237, 14%, 26%)' : '#e5e7eb' },
+                    completed && styles.checkboxCompleted
+                ]}
                 onPress={onToggle}
             >
-                {completed && <Text style={styles.checkmark}>✓</Text>}
+                {completed && <CheckIcon width={11} height={9} />}
             </TouchableOpacity>
 
             <Text
                 style={[
                     styles.text,
-                    completed && styles.textCompleted
+                    {
+                        color: completed
+                            ? (isDarkMode ? 'hsl(235, 16%, 43%)' : '#9ca3af')
+                            : (isDarkMode ? 'hsl(234, 39%, 85%)' : '#333'),
+                        textDecorationLine: completed ? 'line-through' : 'none'
+                    }
                 ]}
                 numberOfLines={0}
             >
                 {text}
             </Text>
 
-            <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-                <Text style={styles.crossText}>×</Text>
+            <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+                <CrossIcon width={18} height={18} />
             </TouchableOpacity>
-        </View>
+        </Animated.View>
     );
 };
 
-const ToDoList = () => {
-    const [todos, setToDos] = useState([
+const ToDoList = ({ isDarkMode }: ToDoListProps) => {
+    const [todos, setToDos] = useState<Todo[]>([
         { id: 1, text: 'Complete online JavaScript course', completed: true },
         { id: 2, text: 'Jog around the park 3x', completed: false },
         { id: 3, text: '10 minutes meditation', completed: false },
@@ -39,8 +95,8 @@ const ToDoList = () => {
         { id: 6, text: 'Complete ToDo App on Frontend Mentor', completed: false },
     ]);
 
-    const addToDo = (text) => {
-        const newToDo = {
+    const addToDo = (text: string) => {
+        const newToDo: Todo = {
             id: Date.now(),
             text: text,
             completed: false,
@@ -48,21 +104,24 @@ const ToDoList = () => {
         setToDos([newToDo, ...todos]);
     };
 
-    const toggleToDo = (id) => {
+    const toggleToDo = (id: number) => {
         setToDos(todos.map(todo =>
             todo.id === id ? { ...todo, completed: !todo.completed } : todo
         ));
     };
 
-    const deleteToDo = (id) => {
+    const deleteToDo = (id: number) => {
         setToDos(todos.filter(todo => todo.id !== id));
     };
 
     return (
         <View style={styles.container}>
-            <TodoInput onAddTodo={addToDo} />
+            <TodoInput onAddTodo={addToDo} isDarkMode={isDarkMode} />
 
-            <View style={styles.todoListContainer}>
+            <View style={[
+                styles.todoListContainer,
+                { backgroundColor: isDarkMode ? 'hsl(235, 24%, 19%)' : 'white' }
+            ]}>
                 <FlatList
                     data={todos}
                     keyExtractor={(item) => item.id.toString()}
@@ -72,6 +131,7 @@ const ToDoList = () => {
                             completed={item.completed}
                             onToggle={() => toggleToDo(item.id)}
                             onDelete={() => deleteToDo(item.id)}
+                            isDarkMode={isDarkMode}
                         />
                     )}
                     contentContainerStyle={{ flexGrow: 1 }}
@@ -89,8 +149,6 @@ const styles = StyleSheet.create({
     todoListContainer: {
         flex: 1,
         minHeight: 350,
-        // both flex & height required for iOS render
-        backgroundColor: 'white',
         marginHorizontal: 20,
         borderRadius: 5,
         shadowColor: '#000',
@@ -105,14 +163,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 25,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
     },
     checkbox: {
         width: 24,
         height: 24,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
         marginRight: 16,
         justifyContent: 'center',
         alignItems: 'center',
@@ -121,29 +177,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#a78bfa',
         borderColor: '#a78bfa',
     },
-    checkmark: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
     text: {
         flex: 1,
         fontSize: 18,
-        color: '#333',
         fontFamily: 'JosefinSans_400Regular',
-    },
-    textCompleted: {
-        textDecorationLine: 'line-through',
-        color: '#9ca3af',
     },
     deleteButton: {
         marginLeft: 12,
         padding: 4,
-    },
-    crossText: {
-        fontSize: 18,
-        color: '#6b7280',
-        fontWeight: 'bold',
     },
 });
 
