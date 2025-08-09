@@ -1,6 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import TodoInput from './ToDoInput';
+import Filter from './Filter';
 import CrossIcon from '../assets/images/icon-cross.svg';
 import CheckIcon from '../assets/images/icon-check.svg';
 
@@ -25,6 +27,7 @@ interface ToDoListProps {
 const ToDoItem = ({ text, completed = false, onToggle, onDelete, isDarkMode }: ToDoItemProps) => {
     const slideAnim = useRef(new Animated.Value(0)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
+    const [isHovered, setIsHovered] = useState(false);
 
     const handleDelete = () => {
         Animated.parallel([
@@ -43,6 +46,44 @@ const ToDoItem = ({ text, completed = false, onToggle, onDelete, isDarkMode }: T
         });
     };
 
+    const renderCheckbox = () => {
+        if (completed) {
+            return (
+                <LinearGradient
+                    colors={['hsl(192, 100%, 67%)', 'hsl(280, 87%, 65%)']}
+                    style={styles.checkboxCompleted}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                >
+                    <CheckIcon width={11} height={9} />
+                </LinearGradient>
+            );
+        }
+
+        if (isHovered) {
+            return (
+                <LinearGradient
+                    colors={['hsl(192, 100%, 67%)', 'hsl(280, 87%, 65%)']}
+                    style={styles.checkboxHovered}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                >
+                    <View style={[
+                        styles.checkboxInner,
+                        { backgroundColor: isDarkMode ? 'hsl(235, 24%, 19%)' : 'white' }
+                    ]} />
+                </LinearGradient>
+            );
+        }
+
+        return (
+            <View style={[
+                styles.checkboxEmpty,
+                { borderColor: isDarkMode ? 'hsl(237, 14%, 26%)' : '#e5e7eb' }
+            ]} />
+        );
+    };
+
     return (
         <Animated.View style={[
             styles.itemContainer,
@@ -53,14 +94,16 @@ const ToDoItem = ({ text, completed = false, onToggle, onDelete, isDarkMode }: T
             }
         ]}>
             <TouchableOpacity
-                style={[
-                    styles.checkbox,
-                    { borderColor: isDarkMode ? 'hsl(237, 14%, 26%)' : '#e5e7eb' },
-                    completed && styles.checkboxCompleted
-                ]}
                 onPress={onToggle}
+                onPressIn={() => setIsHovered(true)}
+                onPressOut={() => setIsHovered(false)}
+                // @ts-ignore
+                onMouseEnter={() => setIsHovered(true)}
+                // @ts-ignore
+                onMouseLeave={() => setIsHovered(false)}
+                style={styles.checkboxContainer}
             >
-                {completed && <CheckIcon width={11} height={9} />}
+                {renderCheckbox()}
             </TouchableOpacity>
 
             <Text
@@ -94,6 +137,21 @@ const ToDoList = ({ isDarkMode }: ToDoListProps) => {
         { id: 5, text: 'Pick up groceries', completed: false },
         { id: 6, text: 'Complete ToDo App on Frontend Mentor', completed: false },
     ]);
+    const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed'>('all');
+    const [highlightAnimation] = useState(new Animated.Value(0));
+
+    const filteredTodos = useMemo(() => {
+        switch (activeFilter) {
+            case 'active':
+                return todos.filter(todo => !todo.completed);
+            case 'completed':
+                return todos.filter(todo => todo.completed);
+            default:
+                return todos;
+        }
+    }, [todos, activeFilter]);
+
+    const itemsLeft = todos.filter(todo => !todo.completed).length;
 
     const addToDo = (text: string) => {
         const newToDo: Todo = {
@@ -114,6 +172,22 @@ const ToDoList = ({ isDarkMode }: ToDoListProps) => {
         setToDos(todos.filter(todo => todo.id !== id));
     };
 
+    const clearCompleted = () => {
+        setToDos(todos.filter(todo => !todo.completed));
+    };
+
+    const handleFilterChange = (filter: 'all' | 'active' | 'completed') => {
+        const newPosition = filter === 'all' ? 0 : filter === 'active' ? 1 : 2;
+
+        Animated.timing(highlightAnimation, {
+            toValue: newPosition,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+
+        setActiveFilter(filter);
+    };
+
     return (
         <View style={styles.container}>
             <TodoInput onAddTodo={addToDo} isDarkMode={isDarkMode} />
@@ -123,7 +197,7 @@ const ToDoList = ({ isDarkMode }: ToDoListProps) => {
                 { backgroundColor: isDarkMode ? 'hsl(235, 24%, 19%)' : 'white' }
             ]}>
                 <FlatList
-                    data={todos}
+                    data={filteredTodos}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
                         <ToDoItem
@@ -134,9 +208,32 @@ const ToDoList = ({ isDarkMode }: ToDoListProps) => {
                             isDarkMode={isDarkMode}
                         />
                     )}
-                    contentContainerStyle={{ flexGrow: 1 }}
-                    style={{ height: '100%' }}
+                    scrollEnabled={false}
+                    showsVerticalScrollIndicator={false}
                 />
+
+                <Filter
+                    isDarkMode={isDarkMode}
+                    activeFilter={activeFilter}
+                    onFilterChange={handleFilterChange}  // Make sure this is handleFilterChange
+                    itemsLeft={itemsLeft}
+                    onClearCompleted={clearCompleted}
+                    highlightAnimation={highlightAnimation}
+                />
+            </View>
+
+            <View style={[
+                styles.dragNoticeContainer,
+                {
+                    borderColor: isDarkMode ? 'hsl(237, 14%, 26%)' : '#e5e7eb',
+                }
+            ]}>
+                <Text style={[
+                    styles.dragNotice,
+                    { color: isDarkMode ? 'hsl(235, 16%, 43%)' : '#9ca3af' }
+                ]}>
+                    Drag and drop to reorder list
+                </Text>
             </View>
         </View>
     );
@@ -147,8 +244,6 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     todoListContainer: {
-        flex: 1,
-        minHeight: 350,
         marginHorizontal: 20,
         borderRadius: 5,
         shadowColor: '#000',
@@ -156,6 +251,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 10,
         elevation: 5,
+        marginTop: 10,
     },
     itemContainer: {
         flexDirection: 'row',
@@ -164,18 +260,34 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         borderBottomWidth: 1,
     },
-    checkbox: {
+    checkboxContainer: {
+        marginRight: 16,
+    },
+    checkboxEmpty: {
         width: 24,
         height: 24,
         borderRadius: 12,
         borderWidth: 1,
-        marginRight: 16,
+    },
+    checkboxCompleted: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    checkboxCompleted: {
-        backgroundColor: '#a78bfa',
-        borderColor: '#a78bfa',
+    checkboxHovered: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 1,
+    },
+    checkboxInner: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
     },
     text: {
         flex: 1,
@@ -185,6 +297,58 @@ const styles = StyleSheet.create({
     deleteButton: {
         marginLeft: 12,
         padding: 4,
+    },
+    filterContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 25,
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#f3f4f6',
+    },
+    filterButtonContainer: {
+        position: 'relative',
+        flexDirection: 'row',
+    },
+    highlight: {
+        position: 'absolute',
+        width: 45,
+        height: 24,
+        borderRadius: 4,
+        top: -4,
+        left: -5,
+        zIndex: 1,
+    },
+    filterButtons: {
+        flexDirection: 'row',
+        gap: 15,
+        zIndex: 2,
+    },
+    filterButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    filterText: {
+        fontSize: 14,
+        fontWeight: '700',
+        fontFamily: 'JosefinSans_700Bold',
+    },
+    clearCompleted: {
+        fontSize: 14,
+        fontFamily: 'JosefinSans_400Regular',
+    },
+    dragNoticeContainer: {
+        marginHorizontal: 20,
+        marginTop: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        alignItems: 'center',
+    },
+    dragNotice: {
+        fontSize: 14,
+        fontFamily: 'JosefinSans_400Regular',
+        textAlign: 'center',
     },
 });
 

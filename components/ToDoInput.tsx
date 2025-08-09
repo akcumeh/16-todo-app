@@ -55,12 +55,15 @@ const TodoInput = ({ onAddTodo, isDarkMode }: TodoInputProps) => {
             <TextInput
                 style={[
                     styles.textInput,
-                    { color: isDarkMode ? 'hsl(234, 39%, 85%)' : '#374151' }
+                    {
+                        color: isDarkMode ? 'hsl(234, 39%, 85%)' : '#374151',
+                    }
                 ]}
                 value={inputText}
                 onChangeText={handleTextChange}
                 placeholder="Create a new todo..."
                 placeholderTextColor={isDarkMode ? 'hsl(235, 16%, 43%)' : '#9ca3af'}
+                selectionColor="hsl(220, 98%, 61%)"
                 onSubmitEditing={handleSubmit}
                 returnKeyType="done"
                 multiline={false}
