@@ -6,7 +6,7 @@ import {
     ImageBackground,
     Animated
 } from 'react-native';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import SunIcon from '../assets/images/icon-sun.svg';
 import MoonIcon from '../assets/images/icon-moon.svg';
 
@@ -17,9 +17,24 @@ interface HeaderProps {
 
 const Header = ({ isDarkMode, toggleTheme }: HeaderProps) => {
     const rotateAnim = useRef(new Animated.Value(0)).current;
+    const fadeAnim = useRef(new Animated.Value(1)).current;
+    const [currentImage, setCurrentImage] = useState(isDarkMode);
 
     const handleToggleTheme = () => {
-        toggleTheme();
+        Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 125,
+            useNativeDriver: true,
+        }).start(() => {
+            setCurrentImage(!isDarkMode);
+            toggleTheme();
+
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 125,
+                useNativeDriver: true,
+            }).start();
+        });
 
         Animated.timing(rotateAnim, {
             toValue: 1,
@@ -36,28 +51,30 @@ const Header = ({ isDarkMode, toggleTheme }: HeaderProps) => {
     });
 
     return (
-        <ImageBackground
-            source={
-                isDarkMode
-                    ? require('../assets/images/bg-mobile-dark.jpg')
-                    : require('../assets/images/bg-mobile-light.jpg')
-            }
-            style={styles.backgroundImage}
-        >
-            <View style={styles.container}>
-                <Text style={styles.title}>TODO</Text>
+        <Animated.View style={{ opacity: fadeAnim }}>
+            <ImageBackground
+                source={
+                    currentImage
+                        ? require('../assets/images/bg-mobile-dark.jpg')
+                        : require('../assets/images/bg-mobile-light.jpg')
+                }
+                style={styles.backgroundImage}
+            >
+                <View style={styles.container}>
+                    <Text style={styles.title}>TODO</Text>
 
-                <TouchableOpacity onPress={handleToggleTheme} style={styles.themeButton}>
-                    <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-                        {isDarkMode ? (
-                            <SunIcon width={26} height={26} />
-                        ) : (
-                            <MoonIcon width={26} height={26} />
-                        )}
-                    </Animated.View>
-                </TouchableOpacity>
-            </View>
-        </ImageBackground>
+                    <TouchableOpacity onPress={handleToggleTheme} style={styles.themeButton}>
+                        <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+                            {isDarkMode ? (
+                                <SunIcon width={26} height={26} />
+                            ) : (
+                                <MoonIcon width={26} height={26} />
+                            )}
+                        </Animated.View>
+                    </TouchableOpacity>
+                </View>
+            </ImageBackground>
+        </Animated.View>
     );
 };
 
@@ -76,9 +93,8 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 32,
-        fontWeight: '700',
         color: '#FFFFFF',
-        letterSpacing: 8,
+        letterSpacing: 7.5,
         fontFamily: 'JosefinSans_700Bold',
     },
     themeButton: {

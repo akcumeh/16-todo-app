@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useState } from 'react';
 import Header from '../components/Header';
 import ToDoList from '../components/ToDoList';
@@ -11,19 +11,27 @@ const ToDo = () => {
     };
 
     return (
-        <View style={[
-            styles.container,
-            { backgroundColor: isDarkMode ? 'hsl(235, 21%, 11%)' : 'hsl(0, 0%, 98%)' }
-        ]}>
+        <ScrollView
+            style={[
+                styles.container,
+                { backgroundColor: isDarkMode ? 'hsl(235, 21%, 11%)' : 'hsl(0, 0%, 98%)' }
+            ]}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={styles.contentContainer}
+        >
             <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
             <ToDoList isDarkMode={isDarkMode} />
-        </View>
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    contentContainer: {
+        flexGrow: 1,
+        minHeight: '100%',
     },
 });
 

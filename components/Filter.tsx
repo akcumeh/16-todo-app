@@ -107,8 +107,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 5,
     },
     filterText: {
-        fontSize: 14,
-        fontWeight: '700',
+        fontSize: 16,
         fontFamily: 'JosefinSans_700Bold',
     },
     clearCompleted: {

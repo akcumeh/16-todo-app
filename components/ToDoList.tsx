@@ -1,6 +1,13 @@
-import { useState, useRef, useMemo } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, Animated } from 'react-native';
+import React, { useState, useRef, useMemo } from 'react';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, Animated, LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Reanimated, {
+    useSharedValue,
+    useAnimatedStyle,
+    runOnJS,
+    withSpring,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import TodoInput from './ToDoInput';
 import Filter from './Filter';
 import CrossIcon from '../assets/images/icon-cross.svg';
@@ -18,33 +25,111 @@ interface ToDoItemProps {
     onToggle: () => void;
     onDelete: () => void;
     isDarkMode: boolean;
+    onDrag: (draggedY: number) => void;
+    onDragEnd: () => void;
+    index: number;
+    draggedIndex: number | null;
+    hoveredIndex: number | null;
+    onLayout: (index: number, height: number) => void;
+    itemHeights: { [key: number]: number };
 }
 
 interface ToDoListProps {
     isDarkMode: boolean;
 }
 
-const ToDoItem = ({ text, completed = false, onToggle, onDelete, isDarkMode }: ToDoItemProps) => {
+const MIN_ITEM_HEIGHT = 65;
+
+const ToDoItem = ({
+    text,
+    completed = false,
+    onToggle,
+    onDelete,
+    isDarkMode,
+    onDrag,
+    onDragEnd,
+    index,
+    draggedIndex,
+    hoveredIndex,
+    onLayout,
+    itemHeights
+}: ToDoItemProps) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const translateY = useSharedValue(0);
+    const scale = useSharedValue(1);
+    const zIndex = useSharedValue(0);
+
     const slideAnim = useRef(new Animated.Value(0)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
-    const [isHovered, setIsHovered] = useState(false);
+
+    const currentItemHeight = itemHeights[index] || MIN_ITEM_HEIGHT;
+
+    const panGesture = Gesture.Pan()
+        .minPointers(1)
+        .activateAfterLongPress(500)
+        .onStart(() => {
+            scale.value = withSpring(1.05);
+            zIndex.value = 1000;
+        })
+        .onUpdate((event) => {
+            translateY.value = event.translationY;
+            runOnJS(onDrag)(event.absoluteY);
+        })
+        .onEnd(() => {
+            translateY.value = withSpring(0, { duration: 200 });
+            scale.value = withSpring(1, { duration: 200 });
+            zIndex.value = 0;
+            runOnJS(onDragEnd)();
+        });
 
     const handleDelete = () => {
         Animated.parallel([
             Animated.timing(slideAnim, {
-                toValue: -300,
-                duration: 250,
+                toValue: -400,
+                duration: 300,
                 useNativeDriver: true,
             }),
             Animated.timing(opacityAnim, {
                 toValue: 0,
-                duration: 250,
+                duration: 300,
                 useNativeDriver: true,
             }),
         ]).start(() => {
             onDelete();
         });
     };
+
+    const handleLayout = (event: LayoutChangeEvent) => {
+        const { height } = event.nativeEvent.layout;
+        const finalHeight = Math.max(height, MIN_ITEM_HEIGHT);
+        onLayout(index, finalHeight);
+    };
+
+    const dragAnimatedStyle = useAnimatedStyle(() => {
+        let shiftAmount = 0;
+
+        if (draggedIndex !== null && hoveredIndex !== null && draggedIndex !== index) {
+            if (hoveredIndex > draggedIndex) {
+                // Dragging downward
+                if (index > draggedIndex && index <= hoveredIndex) {
+                    shiftAmount = -currentItemHeight;
+                }
+            } else {
+                // Dragging upward
+                if (index >= hoveredIndex && index < draggedIndex) {
+                    shiftAmount = currentItemHeight;
+                }
+            }
+        }
+
+        return {
+            transform: [
+                { translateY: translateY.value + shiftAmount },
+                { scale: scale.value },
+            ],
+            zIndex: zIndex.value,
+        };
+    });
 
     const renderCheckbox = () => {
         if (completed) {
@@ -85,46 +170,51 @@ const ToDoItem = ({ text, completed = false, onToggle, onDelete, isDarkMode }: T
     };
 
     return (
-        <Animated.View style={[
-            styles.itemContainer,
-            {
-                borderBottomColor: isDarkMode ? 'hsl(237, 14%, 26%)' : '#f3f4f6',
-                transform: [{ translateX: slideAnim }],
-                opacity: opacityAnim,
-            }
-        ]}>
-            <TouchableOpacity
-                onPress={onToggle}
-                onPressIn={() => setIsHovered(true)}
-                onPressOut={() => setIsHovered(false)}
-                // @ts-ignore
-                onMouseEnter={() => setIsHovered(true)}
-                // @ts-ignore
-                onMouseLeave={() => setIsHovered(false)}
-                style={styles.checkboxContainer}
-            >
-                {renderCheckbox()}
-            </TouchableOpacity>
+        <GestureDetector gesture={panGesture}>
+            <Reanimated.View style={[dragAnimatedStyle]}>
+                <Animated.View
+                    style={[
+                        styles.itemContainer,
+                        {
+                            backgroundColor: isDarkMode ? 'hsl(235, 24%, 19%)' : 'white',
+                            borderBottomColor: isDarkMode ? 'hsl(237, 14%, 26%)' : '#f3f4f6',
+                            minHeight: MIN_ITEM_HEIGHT,
+                            transform: [{ translateX: slideAnim }],
+                            opacity: opacityAnim,
+                        }
+                    ]}
+                    onLayout={handleLayout}
+                >
+                    <TouchableOpacity
+                        onPress={onToggle}
+                        onPressIn={() => setIsHovered(true)}
+                        onPressOut={() => setIsHovered(false)}
+                        style={styles.checkboxContainer}
+                    >
+                        {renderCheckbox()}
+                    </TouchableOpacity>
 
-            <Text
-                style={[
-                    styles.text,
-                    {
-                        color: completed
-                            ? (isDarkMode ? 'hsl(235, 16%, 43%)' : '#9ca3af')
-                            : (isDarkMode ? 'hsl(234, 39%, 85%)' : '#333'),
-                        textDecorationLine: completed ? 'line-through' : 'none'
-                    }
-                ]}
-                numberOfLines={0}
-            >
-                {text}
-            </Text>
+                    <Text
+                        style={[
+                            styles.text,
+                            {
+                                color: completed
+                                    ? (isDarkMode ? 'hsl(235, 16%, 43%)' : '#9ca3af')
+                                    : (isDarkMode ? 'hsl(234, 39%, 85%)' : '#333'),
+                                textDecorationLine: completed ? 'line-through' : 'none'
+                            }
+                        ]}
+                        numberOfLines={0}
+                    >
+                        {text}
+                    </Text>
 
-            <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-                <CrossIcon width={18} height={18} />
-            </TouchableOpacity>
-        </Animated.View>
+                    <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+                        <CrossIcon width={18} height={18} />
+                    </TouchableOpacity>
+                </Animated.View>
+            </Reanimated.View>
+        </GestureDetector>
     );
 };
 
@@ -138,7 +228,10 @@ const ToDoList = ({ isDarkMode }: ToDoListProps) => {
         { id: 6, text: 'Complete ToDo App on Frontend Mentor', completed: false },
     ]);
     const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed'>('all');
-    const [highlightAnimation] = useState(new Animated.Value(0));
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+    const [itemHeights, setItemHeights] = useState<{ [key: number]: number }>({});
+    const listRef = useRef<View>(null);
 
     const filteredTodos = useMemo(() => {
         switch (activeFilter) {
@@ -176,49 +269,123 @@ const ToDoList = ({ isDarkMode }: ToDoListProps) => {
         setToDos(todos.filter(todo => !todo.completed));
     };
 
-    const handleFilterChange = (filter: 'all' | 'active' | 'completed') => {
-        const newPosition = filter === 'all' ? 0 : filter === 'active' ? 1 : 2;
+    const handleItemLayout = (index: number, height: number) => {
+        setItemHeights(prev => ({ ...prev, [index]: height }));
+    };
 
-        Animated.timing(highlightAnimation, {
-            toValue: newPosition,
-            duration: 300,
-            useNativeDriver: true,
-        }).start();
+    const getCumulativeHeight = (upToIndex: number): number => {
+        let totalHeight = 0;
+        for (let i = 0; i < upToIndex; i++) {
+            totalHeight += itemHeights[i] || MIN_ITEM_HEIGHT;
+        }
+        return totalHeight;
+    };
 
-        setActiveFilter(filter);
+    const getIndexFromPosition = (yPosition: number): number => {
+        let currentHeight = 0;
+        for (let i = 0; i < filteredTodos.length; i++) {
+            const itemHeight = itemHeights[i] || MIN_ITEM_HEIGHT;
+            if (yPosition < currentHeight + itemHeight / 2) {
+                return i;
+            }
+            currentHeight += itemHeight;
+        }
+        return filteredTodos.length - 1;
+    };
+
+    const handleDrag = (index: number) => (absoluteY: number) => {
+        setDraggedIndex(index);
+
+        if (listRef.current) {
+            listRef.current.measure((x, y, width, height, pageX, pageY) => {
+                const relativeY = absoluteY - pageY;
+                const newHoveredIndex = getIndexFromPosition(relativeY);
+                const clampedIndex = Math.max(0, Math.min(filteredTodos.length - 1, newHoveredIndex));
+                setHoveredIndex(clampedIndex);
+            });
+        }
+    };
+
+    const handleDragEnd = () => {
+        if (draggedIndex === null || hoveredIndex === null || draggedIndex === hoveredIndex) {
+            setDraggedIndex(null);
+            setHoveredIndex(null);
+            return;
+        }
+
+        const draggedItem = filteredTodos[draggedIndex];
+
+        if (activeFilter === 'all') {
+            const newTodos = [...todos];
+            const draggedOriginalIndex = newTodos.findIndex(todo => todo.id === draggedItem.id);
+            const hoveredOriginalIndex = newTodos.findIndex(todo => todo.id === filteredTodos[hoveredIndex].id);
+
+            newTodos.splice(draggedOriginalIndex, 1);
+            newTodos.splice(hoveredOriginalIndex, 0, draggedItem);
+            setToDos(newTodos);
+        } else {
+            const newFilteredTodos = [...filteredTodos];
+            newFilteredTodos.splice(draggedIndex, 1);
+            newFilteredTodos.splice(hoveredIndex, 0, draggedItem);
+
+            const newTodos = todos.map(todo => {
+                const filteredIndex = newFilteredTodos.findIndex(ft => ft.id === todo.id);
+                if (filteredIndex !== -1) {
+                    return newFilteredTodos[filteredIndex];
+                }
+                return todo;
+            });
+
+            setToDos(newTodos);
+        }
+        
+        setItemHeights({});
+        setDraggedIndex(null);
+        setHoveredIndex(null);
     };
 
     return (
         <View style={styles.container}>
             <TodoInput onAddTodo={addToDo} isDarkMode={isDarkMode} />
 
-            <View style={[
-                styles.todoListContainer,
-                { backgroundColor: isDarkMode ? 'hsl(235, 24%, 19%)' : 'white' }
-            ]}>
+            <View
+                ref={listRef}
+                style={[
+                    styles.todoListContainer,
+                    { backgroundColor: isDarkMode ? 'hsl(235, 24%, 19%)' : 'white' }
+                ]}
+            >
                 <FlatList
                     data={filteredTodos}
                     keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => (
+                    renderItem={({ item, index }) => (
                         <ToDoItem
                             text={item.text}
                             completed={item.completed}
                             onToggle={() => toggleToDo(item.id)}
                             onDelete={() => deleteToDo(item.id)}
                             isDarkMode={isDarkMode}
+                            onDrag={handleDrag(index)}
+                            onDragEnd={handleDragEnd}
+                            index={index}
+                            draggedIndex={draggedIndex}
+                            hoveredIndex={hoveredIndex}
+                            onLayout={handleItemLayout}
+                            itemHeights={itemHeights}
                         />
                     )}
                     scrollEnabled={false}
                     showsVerticalScrollIndicator={false}
+                    style={styles.flatList}
+                    contentContainerStyle={styles.flatListContent}
                 />
 
                 <Filter
                     isDarkMode={isDarkMode}
                     activeFilter={activeFilter}
-                    onFilterChange={handleFilterChange}  // Make sure this is handleFilterChange
+                    onFilterChange={setActiveFilter}
                     itemsLeft={itemsLeft}
                     onClearCompleted={clearCompleted}
-                    highlightAnimation={highlightAnimation}
                 />
             </View>
 
@@ -242,16 +409,19 @@ const ToDoList = ({ isDarkMode }: ToDoListProps) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        width: '100%',
+        maxWidth: 720,
+        alignSelf: 'center',
     },
     todoListContainer: {
-        marginHorizontal: 20,
+        marginHorizontal: 25,
         borderRadius: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
         marginTop: 10,
+    },
+    flatList: {
+        flexGrow: 0,
+    },
+    flatListContent: {
     },
     itemContainer: {
         flexDirection: 'row',
@@ -259,6 +429,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 25,
         paddingVertical: 16,
         borderBottomWidth: 1,
+        backgroundColor: 'transparent',
     },
     checkboxContainer: {
         marginRight: 16,
@@ -297,46 +468,6 @@ const styles = StyleSheet.create({
     deleteButton: {
         marginLeft: 12,
         padding: 4,
-    },
-    filterContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 25,
-        paddingVertical: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#f3f4f6',
-    },
-    filterButtonContainer: {
-        position: 'relative',
-        flexDirection: 'row',
-    },
-    highlight: {
-        position: 'absolute',
-        width: 45,
-        height: 24,
-        borderRadius: 4,
-        top: -4,
-        left: -5,
-        zIndex: 1,
-    },
-    filterButtons: {
-        flexDirection: 'row',
-        gap: 15,
-        zIndex: 2,
-    },
-    filterButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-    },
-    filterText: {
-        fontSize: 14,
-        fontWeight: '700',
-        fontFamily: 'JosefinSans_700Bold',
-    },
-    clearCompleted: {
-        fontSize: 14,
-        fontFamily: 'JosefinSans_400Regular',
     },
     dragNoticeContainer: {
         marginHorizontal: 20,
