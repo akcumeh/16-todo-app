@@ -4,7 +4,7 @@
     "slug": "16-todo-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/favicon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "16todoapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -38,7 +38,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "assetBundlePatterns": ["**/*"]
+    }
   }
 }

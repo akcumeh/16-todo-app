@@ -273,14 +273,6 @@ const ToDoList = ({ isDarkMode }: ToDoListProps) => {
         setItemHeights(prev => ({ ...prev, [index]: height }));
     };
 
-    const getCumulativeHeight = (upToIndex: number): number => {
-        let totalHeight = 0;
-        for (let i = 0; i < upToIndex; i++) {
-            totalHeight += itemHeights[i] || MIN_ITEM_HEIGHT;
-        }
-        return totalHeight;
-    };
-
     const getIndexFromPosition = (yPosition: number): number => {
         let currentHeight = 0;
         for (let i = 0; i < filteredTodos.length; i++) {
