@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build for web
+      run: npx expo export --platform web
+      
+    - name: Fix asset paths for GitHub Pages
+      run: |
+        find dist -name "*.html" -exec sed -i 's|href="/|href="/16-todo-app/|g' {} \;
+        find dist -name "*.html" -exec sed -i 's|src="/|src="/16-todo-app/|g' {} \;
+        find dist -name "*.js" -exec sed -i 's|"/static/|"/16-todo-app/static/|g' {} \;
+      
+    - name: Copy index.html to 404.html for SPA routing
+      run: cp dist/index.html dist/404.html
+      
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
